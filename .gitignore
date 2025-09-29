@@ -33,7 +33,6 @@ Thumbs.db
 /coverage
 
 # Build
-/public/build
 
 # Backup
 *.backup
