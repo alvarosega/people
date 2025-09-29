@@ -17,7 +17,12 @@ export default defineConfig({
     },
     build: {
         manifest: true,
-        assetsDir: 'assets',
+        outDir: 'public/build',
+        rollupOptions: {
+            output: {
+                manifest: true,
+            },
+        },
     },
     base: process.env.NODE_ENV === 'production' ? '/people/' : '/',
 });
