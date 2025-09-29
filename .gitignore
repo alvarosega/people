@@ -1,5 +1,3 @@
-# Crear/sobrescribir .gitignore
-cat > .gitignore << 'EOF'
 # Laravel
 /node_modules
 /public/hot
@@ -43,4 +41,3 @@ Thumbs.db
 
 # Hostinger
 hostinger-check.php
-EOF
