@@ -10,4 +10,14 @@ export default defineConfig({
         }),
         react(),
     ],
+    server: {
+        hmr: {
+            host: 'localhost',
+        },
+    },
+    build: {
+        manifest: true,
+        assetsDir: 'assets',
+    },
+    base: process.env.NODE_ENV === 'production' ? '/people/' : '/',
 });
