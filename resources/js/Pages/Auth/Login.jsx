@@ -21,7 +21,7 @@ export default function Login({ status, canResetPassword }) {
     const submit = (e) => {
         e.preventDefault();
         setIsLoading(true);
-        post(route('login'), {
+        post('/login', {
             onFinish: () => {
                 reset('password');
                 setIsLoading(false);
@@ -171,8 +171,7 @@ export default function Login({ status, canResetPassword }) {
                                 </label>
 
                                 {canResetPassword && (
-                                    <Link
-                                        href={route('password.request')}
+                                    <Link href="/forgot-password"
                                         className="text-sm text-text-secondary underline transition-all duration-200 
                                             hover:text-accent hover:no-underline hover:glow-text"
                                     >

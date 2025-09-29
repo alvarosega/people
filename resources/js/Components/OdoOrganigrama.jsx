@@ -22,18 +22,20 @@ const OdoOrganigrama = ({ node, onAddChild, onEdit, onDelete, level = 0 }) => {
     const [expanded, setExpanded] = useState(true);
     const [showActions, setShowActions] = useState(false);
 
-    // Colores por nivel jerárquico
+    // Colores por nivel jerárquico usando variables del tema
     const getLevelColor = () => {
         const colors = [
-            'from-purple-500 to-purple-600',     // Nivel 0 - Director
-            'from-blue-500 to-blue-600',         // Nivel 1 - Gerente
-            'from-green-500 to-green-600',       // Nivel 2 - Supervisor
-            'from-yellow-500 to-yellow-600',     // Nivel 3 - Líder
-            'from-orange-500 to-orange-600',     // Nivel 4 - Coordinador
-            'from-gray-500 to-gray-600',         // Nivel 5+ - Colaborador
+            "bg-[rgb(var(--color-accent))]",              // Director -> Amarillo AB InBev
+            "bg-[rgb(var(--color-text-secondary))]",      // Gerente -> Gris claro
+            "bg-[rgb(var(--color-text-primary))]",        // Supervisor -> Texto principal
+            "bg-[rgb(var(--color-bg-secondary))]",        // Líder -> Fondo secundario
+            "bg-[rgb(var(--color-bg-primary))]",          // Coordinador -> Fondo principal
+            "bg-[rgb(var(--color-text-secondary))]",      // Colaborador -> Gris
         ];
         return colors[Math.min(nivel_jerarquico, colors.length - 1)];
     };
+
+    
 
     // Icono por nivel jerárquico
     const getLevelIcon = () => {
@@ -51,7 +53,8 @@ const OdoOrganigrama = ({ node, onAddChild, onEdit, onDelete, level = 0 }) => {
     const canAddChildren = true;
 
     return (
-        <div className={`group relative ${level > 0 ? 'ml-8' : ''}`}>
+        <div className={`group relative ${level > 0 ? 'ml-4 sm:ml-8' : ''}`}>
+
             {/* Línea de conexión */}
             {level > 0 && (
                 <div className="absolute -left-4 top-6 w-4 h-0.5 bg-white/20"></div>
@@ -59,18 +62,22 @@ const OdoOrganigrama = ({ node, onAddChild, onEdit, onDelete, level = 0 }) => {
             
             {/* Nodo principal */}
             <div className={`
-                relative bg-primary/80 backdrop-blur-sm border border-white/10 rounded-2xl p-4 mb-3
+                relative bg-primary/80 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 mb-3
+                w-full sm:w-auto
                 transition-all duration-300 hover:border-white/20 hover:bg-primary/90 hover:shadow-2xl
                 ${vacante ? 'border-dashed border-yellow-500/50' : ''}
             `}>
+
                 {/* Indicador de nivel */}
-                <div className={`absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-12 rounded-full bg-gradient-to-b ${getLevelColor()}`}></div>
+                <div className={`absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-12 rounded-full ${getLevelColor()}`}></div>
+
 
                 {/* Header del nodo */}
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                         {/* Avatar/Icono */}
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br ${getLevelColor()} flex items-center justify-center`}>
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${getLevelColor()} flex items-center justify-center`}>
                             {vacante ? (
                                 <User className="h-5 w-5 text-white/80" />
                             ) : (
@@ -78,14 +85,14 @@ const OdoOrganigrama = ({ node, onAddChild, onEdit, onDelete, level = 0 }) => {
                             )}
                         </div>
 
+
                         {/* Información */}
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                                 <h4 className="font-bold text-text-primary truncate text-sm">
                                     {name || "Posición Vacante"}
                                 </h4>
-                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold
-                                    bg-gradient-to-r ${getLevelColor()} text-white`}>
+                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${getLevelColor()} text-white`}>
                                     {getLevelIcon()}
                                     N{nivel_jerarquico}
                                 </span>
@@ -96,12 +103,13 @@ const OdoOrganigrama = ({ node, onAddChild, onEdit, onDelete, level = 0 }) => {
                                 )}
                             </div>
                             
-                            <p className="text-text-secondary text-xs truncate mb-1">
+                            <p className="text-text-secondary text-xs sm:text-sm truncate mb-1">
+
                                 {title || "Sin descripción"}
                             </p>
                             
                             {legajo && (
-                                <p className="text-text-secondary/70 text-xs">
+                                <p className="text-text-secondary text-xs sm:text-sm truncate mb-1">
                                     Legajo: {legajo}
                                 </p>
                             )}
@@ -187,7 +195,7 @@ const OdoOrganigrama = ({ node, onAddChild, onEdit, onDelete, level = 0 }) => {
 
                 {/* Contador de hijos */}
                 {children.length > 0 && (
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-3 pt-3 border-t border-white/10">
                         <div className="flex items-center gap-2 text-text-secondary/70 text-xs">
                             <Users className="h-3 w-3" />
                             <span>{children.length} subordinado{children.length !== 1 ? 's' : ''}</span>
