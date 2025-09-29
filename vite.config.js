@@ -24,5 +24,5 @@ export default defineConfig({
             },
         },
     },
-    base: process.env.NODE_ENV === 'production' ? '/people/' : '/',
+    base: process.env.NODE_ENV === 'production' ? '/people/public/' : '/',
 });
