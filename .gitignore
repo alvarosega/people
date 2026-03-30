@@ -1,8 +1,7 @@
-# Laravel
+# --- LARAVEL ---
 /node_modules
 /public/hot
 /public/storage
-/storage/*.key
 /vendor
 .env
 .env.production
@@ -11,32 +10,29 @@
 .phpunit.result.cache
 Homestead.json
 Homestead.yaml
-npm-debug.log
-yarn-error.log
+*.log
 /.fleet
 /.idea
 /.vscode
 
-# Firebase
+# --- BASE DE DATOS Y DATOS (CRÍTICO) ---
+.db/
+database/data/*.csv
+*.sql
+*.sqlite
+
+# --- FIREBASE ---
 /storage/app/firebase/*.json
 !/storage/app/firebase/.gitkeep
+.firebase/
+*-debug.log
+serviceAccountKey.json
+google-services.json
+GoogleService-Info.plist
 
-# Logs
-*.log
-logs/
-
-# OS
+# --- SISTEMA Y OTROS ---
 .DS_Store
 Thumbs.db
-
-# Testing
 /coverage
-
-# Build
-
-# Backup
-*.backup
-*.sql
-
-# Hostinger
 hostinger-check.php
+.idx/

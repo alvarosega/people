@@ -8,22 +8,25 @@ use Illuminate\Support\Facades\Auth;
 
 class RedirectIfAuthenticated
 {
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next, string ...$guards)
     {
-        if (Auth::check()) {
-            $user = Auth::user();
+        $guards = empty($guards) ? [null] : $guards;
 
-            // Redirigir según rol
-            if ($user->rol === 'admin') {
-                return redirect()->route('admin');
+        foreach ($guards as $guard) {
+            if (Auth::guard($guard)->check()) {
+                $user = Auth::user();
+
+                // Nombres de rutas actualizados según tu web.php
+                if ($user->rol === 'admin') {
+                    return redirect()->route('admin.base-llegada.index');
+                }
+
+                if ($user->rol === 'user') {
+                    return redirect()->route('user.base_llegada');
+                }
+
+                return redirect('/');
             }
-
-            if ($user->rol === 'user') {
-                return redirect()->route('user.index');
-            }
-
-            // fallback por si el usuario no tiene rol
-            return redirect('/');
         }
 
         return $next($request);

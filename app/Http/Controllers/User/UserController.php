@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Models\BaseLlegada;
+use Illuminate\Support\Carbon;
 
 class UserController extends Controller
 {
@@ -13,23 +14,27 @@ class UserController extends Controller
     {
         $user = Auth::user();
 
-        // registros del usuario (ajusta si tu FK es distinta)
+        // Obtenemos los registros y aplicamos la transformación de 3 meses
         $registros = BaseLlegada::where('legajo', $user->legajo)
-            ->orderBy('fecha', 'desc')
+            ->orderBy('fecha_pago', 'desc')
             ->get();
 
-        return Inertia::render('User/Index', [
-            'auth' => [
-                'user' => [
-                    'id' => $user->id,
-                    'nombre' => $user->nombre,
-                    'region' => $user->region,
-                    'rol' => $user->rol,
-                    'puesto' => $user->puesto,
-                    'legajo' => $user->legajo,
-                ],
-            ],
-            'registros' => $registros,
+        $registros->transform(function ($r) {
+            $r->periodo_variable_display = Carbon::parse($r->periodo_variable)->translatedFormat('F Y');
+            $r->periodo_salario_display  = Carbon::parse($r->periodo_salario)->translatedFormat('F Y');
+            $r->fecha_pago_display       = Carbon::parse($r->fecha_pago)->format('d/m/Y');
+            
+            // Cálculos para la vista objetiva
+            $pLogro = (float) $r->pago_porcentaje;
+            $r->alcanzado = round((float)$r->variable_100 * $pLogro, 2);
+            $r->total_bonos = round((float)$r->devol_alimen + (float)$r->dev_territorio + (float)$r->dev_casa, 2);
+
+            return $r;
+        });
+
+        // CORRECCIÓN: Apuntar a la nueva ubicación de la vista
+        return Inertia::render('User/BaseLlegada/Index', [
+            'registros' => $registros
         ]);
     }
 }

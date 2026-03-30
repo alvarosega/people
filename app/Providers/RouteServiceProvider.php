@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Providers;
 
 use Illuminate\Support\Facades\Auth;
@@ -7,7 +8,8 @@ use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvi
 
 class RouteServiceProvider extends ServiceProvider
 {
-    public const HOME = '/dashboard';
+    // Cambiamos el dashboard genérico por la ruta de usuario
+    public const HOME = '/user/base-llegada';
 
     public function boot(): void
     {
@@ -17,13 +19,20 @@ class RouteServiceProvider extends ServiceProvider
         });
     }
 
-    protected function redirectTo(): string
+    /**
+     * Este método se usa en algunos controladores de autenticación 
+     * para determinar la ruta dinámica.
+     */
+    public static function redirectTo(): string
     {
         $user = Auth::user();
+        
+        if (!$user) return '/login';
 
         return match($user->rol) {
-            'admin' => route('admin.index'),
-            default => route('user.index'),
+            'admin' => route('admin.base-llegada.index'),
+            'user'  => route('user.base_llegada'),
+            default => '/',
         };
     }
 }

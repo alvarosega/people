@@ -4,481 +4,226 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BaseLlegada;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Imports\BaseLlegadaRawImport;
-use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
-use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
-
+use Illuminate\Support\Carbon;
 
 class BaseLlegadaController extends Controller
 {
     /**
-     * Listado principal de registros
+     * Listado principal optimizado
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         if ($user->rol !== 'admin') {
             return redirect()->route('user');
         }
 
-        $registros = BaseLlegada::orderBy('fecha', 'desc')
-            ->orderBy('legajo', 'asc')
-            ->get();
+        $search = $request->input('search');
+
+        $query = BaseLlegada::with('usuario');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('legajo', 'like', "%{$search}%")
+                  ->orWhereHas('usuario', function ($userQuery) use ($search) {
+                      $userQuery->where('nombre', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Ordenamos por fecha de pago descendente (lo más nuevo arriba)
+        $registros = $query->orderBy('fecha_pago', 'desc')
+                           ->orderBy('legajo', 'asc')
+                           ->paginate(15)
+                           ->withQueryString();
+
+        // Transformación para los 3 hitos temporales de la vista
+        $registros->getCollection()->transform(function ($r) {
+            $r->periodo_variable_display = $r->periodo_variable 
+                ? Carbon::parse($r->periodo_variable)->translatedFormat('M Y') 
+                : '-';
+            
+            $r->periodo_salario_display = $r->periodo_salario 
+                ? Carbon::parse($r->periodo_salario)->translatedFormat('M Y') 
+                : '-';
+            
+            $r->fecha_pago_display = $r->fecha_pago 
+                ? Carbon::parse($r->fecha_pago)->format('d/m/Y') 
+                : '-';
+            
+            // Cálculo local de pago para la tabla
+            $pLogro = (float) $r->pago_porcentaje;
+            $r->pago_calculado = round(
+                (float)$r->devol_alimen +
+                (float)$r->dev_territorio +
+                (float)$r->dev_casa +
+                ((float)$r->variable_100 * $pLogro), 2
+            );
+
+            return $r;
+        });
 
         return Inertia::render('Admin/BaseLlegada/Index', [
-            'registros' => $registros->isEmpty() ? [] : $registros->toArray()
+            'registros' => $registros,
+            'filters'   => ['search' => $search]
         ]);
     }
+
+    /**
+     * Mostrar formulario de creación (3 fechas)
+     */
+    public function create()
+    {
+        $usuarios = User::orderBy('nombre')->get(['legajo', 'nombre']);
+
+        return Inertia::render('Admin/BaseLlegada/Create', [
+            'usuarios' => $usuarios
+        ]);
+    }
+
+    /**
+     * Guardar registro con validación de periodo de salario
+     */
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'legajo'           => 'required|exists:users,legajo',
+            'periodo_variable' => 'required|date_format:Y-m',
+            'periodo_salario'  => 'required|date_format:Y-m',
+            'fecha_pago'       => 'required|date',
+            'variable_100'     => 'nullable|numeric|min:0',
+            'pago_porcentaje'  => 'nullable|numeric|min:0',
+            'devol_alimen'     => 'nullable|numeric|min:0',
+            'dias_alim'        => 'nullable|numeric|min:0',
+            'dev_territorio'   => 'nullable|numeric|min:0',
+            'dias_terr'        => 'nullable|numeric|min:0',
+            'dev_casa'         => 'nullable|numeric|min:0',
+            'dias_casa'        => 'nullable|numeric|min:0',
+            'anillo'           => 'nullable|string|max:255',
+            'comentario'       => 'nullable|string'
+        ]);
+
+        // Normalizar fechas a primer día del mes para la base de datos
+        $data['periodo_variable'] = Carbon::createFromFormat('Y-m', $data['periodo_variable'])->startOfMonth()->format('Y-m-d');
+        $data['periodo_salario']  = Carbon::createFromFormat('Y-m', $data['periodo_salario'])->startOfMonth()->format('Y-m-d');
+        $data['fecha_pago']       = Carbon::parse($data['fecha_pago'])->format('Y-m-d');
+
+        // Unicidad: un usuario no puede tener dos salarios reportados el mismo mes
+        if (BaseLlegada::where('legajo', $data['legajo'])->where('periodo_salario', $data['periodo_salario'])->exists()) {
+            return back()->withErrors(['periodo_salario' => 'Ya existe un registro de sueldo para este usuario en ese periodo.']);
+        }
+
+        BaseLlegada::create($data);
+
+        return redirect()->route('admin.base-llegada.index')->with('success', 'Registro creado correctamente.');
+    }
+
+    /**
+     * Mostrar formulario de edición
+     */
     public function edit($id)
     {
         $registro = BaseLlegada::with('usuario')->findOrFail($id);
-    
-        return Inertia::render('Admin/EditRegistro', [
+        $usuarios = User::withTrashed()->orderBy('nombre')->get(['legajo', 'nombre']); 
+
+        // Formatear para inputs de tipo month y date
+        $registro->periodo_variable_input = Carbon::parse($registro->periodo_variable)->format('Y-m');
+        $registro->periodo_salario_input  = Carbon::parse($registro->periodo_salario)->format('Y-m');
+        $registro->fecha_pago_input       = Carbon::parse($registro->fecha_pago)->format('Y-m-d');
+
+        return Inertia::render('Admin/BaseLlegada/Edit', [
             'registro' => $registro,
+            'usuarios' => $usuarios
         ]);
     }
-    
+
+    /**
+     * Actualizar registro
+     */
     public function update(Request $request, $id)
     {
         $registro = BaseLlegada::findOrFail($id);
-    
+
         $data = $request->validate([
-            'variable_100'   => 'numeric|nullable',
-            'devol_alimen'   => 'numeric|nullable',
-            'dev_territorio' => 'numeric|nullable',
-            'dev_casa'       => 'numeric|nullable',
-            'comentario'     => 'nullable|string',
+            'legajo'           => 'required|exists:users,legajo',
+            'periodo_variable' => 'required|date_format:Y-m',
+            'periodo_salario'  => 'required|date_format:Y-m',
+            'fecha_pago'       => 'required|date',
+            'variable_100'     => 'nullable|numeric|min:0',
+            'pago_porcentaje'  => 'nullable|numeric|min:0',
+            'devol_alimen'     => 'nullable|numeric|min:0',
+            'dev_territorio'   => 'nullable|numeric|min:0',
+            'dev_casa'         => 'nullable|numeric|min:0',
+            'comentario'       => 'nullable|string'
         ]);
-    
+
+        $data['periodo_variable'] = Carbon::createFromFormat('Y-m', $data['periodo_variable'])->startOfMonth()->format('Y-m-d');
+        $data['periodo_salario']  = Carbon::createFromFormat('Y-m', $data['periodo_salario'])->startOfMonth()->format('Y-m-d');
+        $data['fecha_pago']       = Carbon::parse($data['fecha_pago'])->format('Y-m-d');
+
+        // Validar duplicado ignorando el actual
+        if (BaseLlegada::where('legajo', $data['legajo'])
+                       ->where('periodo_salario', $data['periodo_salario'])
+                       ->where('id', '!=', $id)
+                       ->exists()) {
+            return back()->withErrors(['periodo_salario' => 'Conflicto: Ya existe otro registro de sueldo para este usuario en ese periodo.']);
+        }
+
         $registro->update($data);
-    
-        return redirect()
-            ->route('admin') // 👈 usa el nombre de la ruta de listado
-            ->with('success', 'Registro actualizado correctamente.');
+
+        return redirect()->route('admin.base-llegada.index')->with('success', 'Registro actualizado correctamente.');
+    }
+
+    public function destroy($id)
+    {
+        BaseLlegada::findOrFail($id)->delete();
+        return redirect()->route('admin.base-llegada.index')->with('success', 'Registro eliminado.');
     }
 
     /**
-     * Descargar plantilla CSV con encabezados correctos
-     */
-    public function downloadTemplate()
-    {
-        $headers = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="plantilla_base_llegada.csv"',
-        ];
-
-        $callback = function () {
-            $out = fopen('php://output', 'w');
-            // BOM UTF-8
-            fwrite($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            // Encabezados correctos según la tabla
-            fputcsv($out, [
-                'fecha','fecha_pago','legajo','variable_100','pago_porcentaje',
-                'devol_alimen','dias_alim',
-                'dev_territorio','dias_terr',
-                'dev_casa','dias_casa',
-                'anillo','comentario'
-            ]);
-            
-            fputcsv($out, [
-                '03-2025','2025-03-15','12345','3000','25',
-                '5000','10',
-                '1500','5',
-                '800','2',
-                'A1','opcional'
-            ]);
-            
-            fclose($out);
-        };
-
-        return response()->stream($callback, 200, $headers);
-    }
-
-    /**
-     * Previsualizar archivo subido
-     */
-    public function uploadPreview(Request $request)
-    {
-        $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,csv,txt'],
-        ]);
-
-        $file = $request->file('file');
-
-        $collections = Excel::toCollection(new BaseLlegadaRawImport, $file);
-        if ($collections->isEmpty()) {
-            return response()->json(['rows' => []]);
-        }
-
-        $sheet = $collections->first();
-        if ($sheet->isEmpty()) {
-            return response()->json(['rows' => []]);
-        }
-
-        $rows = [];
-        foreach ($sheet as $idx => $row) {
-            // 🔑 Normalizamos claves (si vienen como 0,1,2…)
-            $normalizedRow = $this->normalizeKeys($row->toArray());
-
-            [$data, $errors] = $this->validateAndNormalizeRow($normalizedRow, $idx + 2);
-
-            $rows[] = [
-                'data'   => $data,
-                'errors' => $errors,
-            ];
-        }
-
-        return response()->json(['rows' => $rows]);
-    }
-
-    /**
-     * Confirmar y guardar filas en DB
-     */
-    public function storeImported(Request $request)
-    {
-        try {
-            // Log detallado del request
-            Log::info('=== INICIO IMPORTACIÓN ===');
-            Log::info('Request method: ' . $request->method());
-            Log::info('Request all data:', $request->all());
-            
-            $inputRows = $request->input('rows', []);
-            Log::info('Rows recibidas:', ['count' => count($inputRows), 'data' => $inputRows]);
-
-            // Validación básica primero
-            if (empty($inputRows) || !is_array($inputRows)) {
-                Log::error('No se recibieron filas válidas');
-                return response()->json([
-                    'message' => 'No se recibieron datos válidos para importar',
-                    'success' => false
-                ], 400);
-            }
-
-            $savedCount = 0;
-            $errors = [];
-            
-            foreach ($inputRows as $index => $row) {
-                Log::info("=== PROCESANDO FILA {$index} ===", $row);
-
-                try {
-                    // Validar campos requeridos
-                    if (empty($row['fecha'])) {
-                        $errors[] = "Fila {$index}: fecha es requerida";
-                        continue;
-                    }
-                    
-                    if (empty($row['legajo'])) {
-                        $errors[] = "Fila {$index}: legajo es requerido";
-                        continue;
-                    }
-
-                    // Procesar fechas
-                    $fecha = $this->procesarPeriodo($row['fecha'] ?? null);
-                    $fechaPago = !empty($row['fecha_pago']) 
-                        ? $this->procesarFechaPago($row['fecha_pago']) 
-                        : null;
-                    
-
-                    Log::info("Fechas procesadas", ['fecha' => $fecha, 'fecha_pago' => $fechaPago]);
-
-                    // Preparar datos para inserción
-                    $dataToInsert = [
-                        'fecha'           => $fecha,
-                        'fecha_pago'      => $fechaPago,
-                        'legajo'          => $row['legajo'],
-                        'variable_100'    => $this->parseNumber($row['variable_100'] ?? null),
-                        'pago_porcentaje' => $this->parsePercentToDecimal($row['pago_porcentaje'] ?? null),
-                        'devol_alimen'    => $this->parseNumber($row['devol_alimen'] ?? null),
-                        'dias_alim'       => $this->parseNumber($row['dias_alim'] ?? null),
-                        'dev_territorio'  => $this->parseNumber($row['dev_territorio'] ?? null),
-                        'dias_terr'       => $this->parseNumber($row['dias_terr'] ?? null),
-                        'dev_casa'        => $this->parseNumber($row['dev_casa'] ?? null),
-                        'dias_casa'       => $this->parseNumber($row['dias_casa'] ?? null),
-                        'anillo'          => $row['anillo'] ?? null,
-                        'comentario'      => $row['comentario'] ?? null,
-                    ];
-
-                    Log::info("Datos preparados para inserción:", $dataToInsert);
-
-                    // Crear el registro
-                    $registro = BaseLlegada::create($dataToInsert);
-                    
-                    Log::info("✅ Registro creado exitosamente", ['id' => $registro->id]);
-                    $savedCount++;
-
-                } catch (\Exception $rowError) {
-                    Log::error("❌ Error en fila {$index}", [
-                        'error' => $rowError->getMessage(),
-                        'file' => $rowError->getFile(),
-                        'line' => $rowError->getLine()
-                    ]);
-                    $errors[] = "Fila {$index}: " . $rowError->getMessage();
-                }
-            }
-
-            Log::info('=== RESULTADO FINAL ===', [
-                'saved_count' => $savedCount,
-                'errors_count' => count($errors),
-                'errors' => $errors
-            ]);
-            
-            if ($savedCount > 0) {
-                return response()->json([
-                    'message' => "Importación completada: {$savedCount} registros guardados" . 
-                                (count($errors) > 0 ? " (con " . count($errors) . " errores)" : ""),
-                    'success' => true,
-                    'saved_count' => $savedCount,
-                    'errors' => $errors
-                ]);
-            } else {
-                return response()->json([
-                    'message' => 'No se pudo importar ningún registro',
-                    'success' => false,
-                    'errors' => $errors
-                ], 400);
-            }
-            
-        } catch (\Exception $e) {
-            Log::error('💥 ERROR CRÍTICO EN IMPORTACIÓN', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return response()->json([
-                'message' => 'Error interno del servidor: ' . $e->getMessage(),
-                'success' => false,
-                'debug' => [
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine()
-                ]
-            ], 500);
-        }
-    }
-    // Para fecha (periodo)
-    private function procesarPeriodo($valor)
-    {
-        if (empty($valor)) return null;
-    
-        try {
-            return Carbon::createFromFormat('m-Y', $valor)->format('m-Y');
-        } catch (\Exception $e) {
-            return null;
-        }
-    }
-    
-    // Para fecha_pago
-    private function procesarFechaPago($valor)
-    {
-        if (empty($valor)) return null;
-        return Carbon::parse($valor)->format('d-m-Y');
-    }
-
-    // ---------------------- Helpers ----------------------
-
-    /**
-     * Validar y normalizar fila de Excel/CSV
-     */
-    private function validateAndNormalizeRow(array $row, int $rowNumber)
-    {
-        $errors = [];
-        $data = $row;
-
-        // ✅ Fecha en formato m-YYYY
-        $fecha = $row['fecha'] ?? null;
-        if ($fecha !== null) {
-            $parsed = null;
-            $dt = \DateTime::createFromFormat('m-Y', $fecha);
-            if ($dt !== false) {
-                $parsed = $dt->format('m-Y');
-            }
-            if ($parsed === null && is_numeric($fecha)) {
-                try {
-                    $dt = ExcelDate::excelToDateTimeObject($fecha);
-                    $parsed = $dt->format('m-Y');
-                } catch (\Exception $e) {}
-            }
-            if ($parsed === null) {
-                $errors[] = "Fila {$rowNumber}: fecha inválida (formato m-YYYY).";
-            } else {
-                $data['fecha'] = $parsed;
-            }
-        }
-
-        // ✅ Fecha pago
-        if (!empty($row['fecha_pago'])) {
-            $data['fecha_pago'] = $this->procesarFechaPago($row['fecha_pago']);
-        }
-
-        // ✅ Pago porcentaje
-        $data['pago_porcentaje'] = $this->parsePercentToDecimal($row['pago_porcentaje'] ?? null);
-
-        // ✅ Campos numéricos: devol_alimen, variable_100, dev_territorio, dev_casa
-        foreach (['devol_alimen','variable_100','dev_territorio','dev_casa'] as $campo) {
-            $val = $this->parseNumber($row[$campo] ?? null);
-            if ($val === null && isset($row[$campo]) && $row[$campo] !== '') {
-                $errors[] = "Fila {$rowNumber}: {$campo} inválido.";
-            } else {
-                $data[$campo] = $val;
-            }
-        }
-
-        // ✅ Días (enteros)
-        foreach (['dias_alim','dias_terr','dias_casa'] as $campo) {
-            if (isset($row[$campo]) && $row[$campo] !== '') {
-                if (!ctype_digit((string)$row[$campo])) {
-                    $errors[] = "Fila {$rowNumber}: {$campo} debe ser un número entero.";
-                } else {
-                    $data[$campo] = (int) $row[$campo];
-                }
-            }
-        }
-
-        return [$data, $errors];
-    }
-
-    private function parsePercentToDecimal($value)
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-    
-        // Eliminar espacios y símbolo de porcentaje
-        $s = str_replace(['%', ' '], '', (string)$value);
-    
-        // Normalizar separador decimal
-        $s = str_replace('.', '', $s);   // quita miles con punto
-        $s = str_replace(',', '.', $s); // convierte coma en decimal
-    
-        if (!is_numeric($s)) {
-            return null;
-        }
-    
-        $n = (float) $s;
-        // Si es 25 => 0.25 | Si es 0.25 => 0.25
-        return $n > 1 ? $n / 100 : $n;
-    }
-    
-    private function parseNumber($value)
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-    
-        $s = (string)$value;
-    
-        // Caso 1: número con coma decimal (ej: 1.234,56)
-        if (preg_match('/\d+,\d{1,2}$/', $s)) {
-            $s = str_replace('.', '', $s); // quita puntos de miles
-            $s = str_replace(',', '.', $s); // deja coma como decimal
-        } 
-        // Caso 2: número con punto decimal (ej: 1234.56)
-        else {
-            $s = str_replace(',', '', $s); // quita comas de miles
-        }
-    
-        if (!is_numeric($s)) {
-            return null;
-        }
-    
-        return (float) $s;
-    }
-
-    /**
-     * Exportar datos en CSV con las columnas correctas
+     * Exportar con el nuevo esquema de 3 fechas
      */
     public function export(Request $request)
     {
-        $query = BaseLlegada::query();
-
         $filename = "base_llegada_" . now()->format("Ymd_His") . ".csv";
-        
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
         
-        $callback = function () use ($query) {
+        $callback = function () {
             $handle = fopen('php://output', 'w');
-        
-            // BOM UTF-8 para que Excel abra bien el archivo
-            fwrite($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
-        
-            // Encabezados
+            fwrite($handle, "\xEF\xBB\xBF");
+            
             fputcsv($handle, [
-                'fecha','fecha_pago','legajo','variable_100','pago_porcentaje',
-                'devol_alimen','dias_alim',
-                'dev_territorio','dias_terr',
-                'dev_casa','dias_casa',
-                'anillo','comentario'
-            ]);
+                'periodo_variable', 'periodo_salario', 'fecha_pago', 'legajo', 'variable_100', 
+                'pago_porcentaje', 'devol_alimen', 'dev_territorio', 'dev_casa', 'anillo', 'comentario'
+            ], ';');
             
-            foreach ($query->get() as $item) {
-                fputcsv($handle, [
-                    $item->fecha,
-                    $item->fecha_pago,
-                    $item->legajo,
-                    $item->variable_100,
-                    $item->pago_porcentaje,
-                    $item->devol_alimen,
-                    $item->dias_alim,
-                    $item->dev_territorio,
-                    $item->dias_terr,
-                    $item->dev_casa,
-                    $item->dias_casa,
-                    $item->anillo,
-                    $item->comentario,
-                ]);
-            }
-            
+            BaseLlegada::orderBy('fecha_pago', 'desc')->chunk(500, function ($registros) use ($handle) {
+                foreach ($registros as $item) {
+                    fputcsv($handle, [
+                        Carbon::parse($item->periodo_variable)->format('Ym'),
+                        Carbon::parse($item->periodo_salario)->format('Ym'),
+                        Carbon::parse($item->fecha_pago)->format('Y-m-d'),
+                        $item->legajo,
+                        $item->variable_100,
+                        $item->pago_porcentaje,
+                        $item->devol_alimen,
+                        $item->dev_territorio,
+                        $item->dev_casa,
+                        $item->anillo,
+                        $item->comentario,
+                    ], ';');
+                }
+            });
             fclose($handle);
         };
         
         return response()->stream($callback, 200, $headers);
-    }
-
-    public function showImport()
-    {
-        return Inertia::render('Admin/BaseLlegada/Import', [
-            'previewData' => [],
-            'errors' => []
-        ]);
-    }
-
-    /**
-     * Normalizar claves de fila: convertir índices numéricos a nombres
-     */
-    private function normalizeKeys(array $row): array
-    {
-        $map = [
-            '0'  => 'fecha',
-            '1'  => 'fecha_pago',
-            '2'  => 'legajo',
-            '3'  => 'variable_100',
-            '4'  => 'pago_porcentaje',
-            '5'  => 'devol_alimen',
-            '6'  => 'dias_alim',
-            '7'  => 'dev_territorio',
-            '8'  => 'dias_terr',
-            '9'  => 'dev_casa',
-            '10' => 'dias_casa',
-            '11' => 'anillo',
-            '12' => 'comentario',
-        ];
-        
-        foreach ($map as $key => $alias) {
-            if (isset($row[$key]) && !isset($row[$alias])) {
-                $row[$alias] = $row[$key];
-                unset($row[$key]);
-            }
-        }
-
-        return $row;
     }
 }

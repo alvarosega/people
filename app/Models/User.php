@@ -3,22 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes; // Importación obligatoria
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable; 
-use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Support\Facades\Notification;
-
 use Illuminate\Support\Facades\Mail;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
-        /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    use HasFactory, Notifiable, SoftDeletes; // Trait agregado
+
     protected $fillable = [
         'region',
         'legajo',
@@ -31,16 +24,10 @@ class User extends Authenticatable
         'last_updated_by',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
-
 
     protected function casts(): array
     {
@@ -53,10 +40,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Vacation::class, 'legajo', 'legajo');
     }
+
     public function getEmailForPasswordReset()
     {
-        return $this->email; // Asegúrate de usar el campo correcto
+        return $this->email;
     }
+
     public function sendPasswordResetNotification($token)
     {
         $url = url(route('password.reset', [
@@ -64,13 +53,12 @@ class User extends Authenticatable
             'email' => $this->email,
         ], false));
     
-        // Enviar directamente usando Mail en lugar de Notification
         Mail::send('emails.reset-password', ['url' => $url], function ($message) {
             $message->to($this->email)
                     ->subject('Restablecer contraseña');
         });
     }
-    // en la clase User
+
     public function getNameAttribute()
     {
         return $this->nombre;
@@ -80,5 +68,4 @@ class User extends Authenticatable
     {
         return $this->legajo;
     }
-    
 }

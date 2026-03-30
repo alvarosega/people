@@ -253,14 +253,19 @@ const Organigrama = () => {
         <circle r={8} cx={-110} cy={-18} fill={nodeDatum.vacante ? "#ff6b6b" : "#2b6cb0"} />
         {/* foreignObject para contenido (texto) */}
         <foreignObject x={-100} y={-35} width={220} height={70}>
-          <div style={{
-            border: "1px solid #ddd",
-            borderRadius: 6,
-            padding: 6,
-            background: "#fff",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-            pointerEvents: "none" // evitamos que los elementos internos quiten el evento al <g>
-          }}>
+        <div
+          className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl p-3 shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105"
+          style={{
+            background: "rgba(255, 255, 255, 0.95)",
+            backdropFilter: "blur(10px)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            borderRadius: "16px",
+            padding: "10px",
+            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
+            pointerEvents: "none"
+          }}
+        >
+
             <div style={{ fontWeight: 700, fontSize: 13 }}>
               {nodeDatum.name || "Vacante"}
             </div>
@@ -290,20 +295,26 @@ const Organigrama = () => {
     }
   >
     <Head title="Organigrama" />
-    <div className="flex flex-col sm:flex-row h-screen">
-      {/* Árbol */}
+    <div className="flex flex-col h-screen">
+      {/* Árbol con estilo visual similar a UserOrganigrama */}
       <div
         ref={treeContainerRef}
-        className="w-full h-full"
+        className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200 overflow-hidden relative"
+        style={{ height: "calc(100vh - 200px)" }}
       >
+
             <div className="w-full h-full flex">
           {(!treeData || treeData.length === 0) ? (
             // Si no hay nodos: UI para crear raíz
-            <div className="p-6">
+            <div className="flex items-center justify-center h-full">
               {!creatingRoot ? (
-                <div className="space-y-4">
-                  <h2 className="text-xl font-bold">Organigrama vacío</h2>
-                  <p>No hay nodos creados todavía. Crea el nodo principal (raíz) para comenzar.</p>
+                <div className="text-center p-8">
+                  <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">🏢</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-800 mb-2">Organigrama vacío</h2>
+                  <p className="text-gray-600 mb-4">No hay nodos creados todavía. Crea el nodo raíz para comenzar.</p>
+
 
                   <div className="flex gap-2">
                     <button
@@ -395,6 +406,8 @@ const Organigrama = () => {
               onNodeClick={(nodeDatum, evt) => handleNodeClick(nodeDatum, evt)}
               renderCustomNodeElement={(rd3tProps) => renderCustomNode(rd3tProps)}
               allowForeignObjects
+              nodeSize={{ x: 260, y: 140 }}   // controla el tamaño de "celdas" de cada nodo
+              separation={{ siblings: 1, nonSiblings: 1 }} 
             />
           </div>
           )}
@@ -405,7 +418,8 @@ const Organigrama = () => {
       {/* Modal para detalles del nodo */}
       {isModalOpen && selectedNode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl w-11/12 sm:w-96 max-h-[90vh] p-6 shadow-lg relative overflow-auto">
+          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-2xl w-11/12 sm:w-96 max-h-[90vh] p-6 shadow-xl relative overflow-auto border border-gray-200">
+
 
             {/* Botón cerrar */}
             <button

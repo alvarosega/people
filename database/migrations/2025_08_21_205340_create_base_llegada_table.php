@@ -10,24 +10,28 @@ return new class extends Migration
     {
         Schema::create('base_llegada', function (Blueprint $table) {
             $table->id();
-            $table->string('fecha');
-            $table->string('fecha_pago')->nullable(); 
-            $table->unsignedBigInteger('legajo');
+            $table->date('periodo_variable'); // Mes actividad (Bonos/Variables)
+            $table->date('periodo_salario');  // Mes del sueldo reportado
+            $table->date('fecha_pago');       // Día efectivo del depósito
+            
+            $table->string('legajo');
+            $table->foreign('legajo')->references('legajo')->on('users')->onUpdate('cascade')->onDelete('restrict');
+
             $table->decimal('variable_100', 12, 2)->nullable();
-            $table->decimal('pago_porcentaje', 8, 4)->nullable(); // Cambié a 4 decimales para porcentajes más precisos
-
+            $table->decimal('pago_porcentaje', 8, 4)->nullable(); 
             $table->decimal('devol_alimen', 12, 2)->nullable();
-            $table->decimal('dias_alim', 8, 2)->nullable(); // CAMBIADO: ahora permite decimales            
-
+            $table->decimal('dias_alim', 8, 2)->nullable(); 
             $table->decimal('dev_territorio', 12, 2)->nullable();
-            $table->decimal('dias_terr', 8, 2)->nullable(); // CAMBIADO: ahora permite decimales
-
+            $table->decimal('dias_terr', 8, 2)->nullable(); 
             $table->decimal('dev_casa', 12, 2)->nullable();
-            $table->decimal('dias_casa', 8, 2)->nullable(); // CAMBIADO: ahora permite decimales
+            $table->decimal('dias_casa', 8, 2)->nullable(); 
             
             $table->string('anillo')->nullable();
             $table->text('comentario')->nullable();
             $table->timestamps();
+
+            // Índice compuesto para evitar duplicidad de registros en el mismo periodo
+            $table->index(['legajo', 'periodo_salario']);
         });
     }
 

@@ -105,10 +105,10 @@ const UserOrganigrama = () => {
   const renderCustomNode = ({ nodeDatum, toggleNode }) => {
     const nodeColor = nodeDatum.vacante ? "#ff6b6b" : "#2b6cb0";
     const hasChildren = nodeDatum.children && nodeDatum.children.length > 0;
-
+  
     return (
       <g style={{ cursor: "default" }}>
-        {/* Círculo del nodo - MEJORADO visualmente */}
+        {/* Círculo del nodo */}
         <circle
           r={10}
           cx={-120}
@@ -118,71 +118,48 @@ const UserOrganigrama = () => {
           strokeWidth={2}
           className="transition-all duration-200 hover:r-12"
         />
-        
-        {/* Contenedor del nodo - MEJORADO visualmente */}
+  
+        {/* Contenedor */}
         <foreignObject x={-105} y={-40} width={230} height={80}>
           <div
             className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl p-4 shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105"
             style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '16px',
-              padding: '12px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+              background: "rgba(255, 255, 255, 0.95)",
+              backdropFilter: "blur(10px)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              borderRadius: "16px",
+              padding: "12px",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)"
             }}
           >
-            {/* Header del nodo */}
+            {/* Header */}
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <div 
-                  className="font-bold text-gray-900 text-sm truncate"
-                  style={{ fontSize: '14px', fontWeight: '700' }}
-                >
+                <div className="font-bold text-gray-900 text-sm truncate">
                   {nodeDatum.name || "Vacante"}
                 </div>
-                <div 
-                  className="text-gray-600 text-xs truncate mt-1"
-                  style={{ fontSize: '12px' }}
-                >
+                <div className="text-gray-600 text-xs truncate mt-1">
                   {nodeDatum.title || nodeDatum.attributes?.puesto || ""}
                 </div>
               </div>
-              
-              {/* Indicador de nivel */}
-              <div 
-                className="flex-shrink-0 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-2 py-1 rounded-full text-xs font-bold ml-2"
-                style={{ 
-                  background: 'linear-gradient(135deg, #f5e003, #e5b611)',
-                  color: '#000',
-                  padding: '4px 8px',
-                  borderRadius: '12px',
-                  fontSize: '10px',
-                  fontWeight: '700'
-                }}
-              >
-                N{nodeDatum.nivel_jerarquico ?? "-"}
-              </div>
+  
             </div>
-
-            {/* Información adicional */}
-            <div 
-              className="text-gray-500 text-xs flex items-center justify-between"
-              style={{ fontSize: '10px' }}
-            >
+  
+            {/* Info extra */}
+            <div className="text-gray-500 text-xs flex items-center justify-between">
               <span>
-                {nodeDatum.vacante ? "VACANTE" : nodeDatum.legajo ? `Legajo: ${nodeDatum.legajo}` : "-"}
+                {nodeDatum.vacante
+                  ? "VACANTE"
+                  : nodeDatum.__raw?.is_root && nodeDatum.legajo
+                  ? `Legajo: ${nodeDatum.legajo}`
+                  : "-"}
               </span>
-              {hasChildren && (
-                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                  {nodeDatum.children.length} subordinado{nodeDatum.children.length !== 1 ? 's' : ''}
-                </span>
-              )}
+              {/* 👇 Eliminado el badge de subordinados */}
             </div>
           </div>
         </foreignObject>
-
-        {/* Indicador de hijos colapsables - MANTENIDO funcionalidad */}
+  
+        {/* Botón colapsar hijos */}
         {hasChildren && (
           <circle
             r={6}
@@ -193,12 +170,12 @@ const UserOrganigrama = () => {
             strokeWidth={1}
             onClick={toggleNode}
             style={{ cursor: "pointer" }}
-            className="hover:fill-#cbd5e0"
           />
         )}
       </g>
     );
   };
+  
 
   // -------------------------
   // Render principal - MEJORADO visualmente, MANTENIDO funcionalidad
@@ -280,10 +257,12 @@ const UserOrganigrama = () => {
               collapsible
               renderCustomNodeElement={(rd3tProps) => renderCustomNode(rd3tProps)}
               allowForeignObjects
-              pathClassFunc={() => "stroke-gray-300 stroke-2"} // ✅ Mejorado
-              transitionDuration={300} // ✅ Mejorado
-              dimensions={dimensions} // ✅ Mejorado para responsive
+              pathClassFunc={() => "stroke-gray-300 stroke-2"}
+              transitionDuration={300}
+              dimensions={dimensions}
+              separation={{ siblings: 2, nonSiblings: 2.5 }} // 👈 MÁS ESPACIO ENTRE NODOS
             />
+
           )}
         </div>
 
