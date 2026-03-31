@@ -14,44 +14,53 @@ class BaseLlegadaSeeder extends Seeder
         $csvFile = database_path('data/historico_base_llegada.csv');
 
         if (!file_exists($csvFile)) {
-            $this->command->error("Archivo no encontrado en: $csvFile");
+            $this->command->error("Archivo no encontrado");
             return;
         }
 
         $file = fopen($csvFile, 'r');
-        
-        // 1. Forzamos el delimitador de punto y coma [;]
-        fgetcsv($file, 0, ';'); // Saltar cabecera
+        fgetcsv($file); // Saltar cabecera
 
         $procesados = 0;
         $omitidos = 0;
 
-        while (($row = fgetcsv($file, 0, ';')) !== FALSE) {
-            // Saltamos filas vacías
+        while (($row = fgetcsv($file, 0, ',')) !== FALSE) {
             if (empty($row) || count($row) < 4) continue;
 
             try {
-                // Helper de limpieza
                 $clean = fn($v) => trim(preg_replace('/[\x00-\x1F\x7F-\xFF]/', '', $v ?? ''));
                 
                 $legajo = $clean($row[3]);
-
-                // 2. Validación de existencia de usuario
                 if (!User::where('legajo', $legajo)->withTrashed()->exists()) {
                     $omitidos++;
                     continue;
                 }
 
-                // 3. Parseo de Fechas (Formato: 202512 y 1/2/2026)
-                $pVariable = Carbon::createFromFormat('Ym', substr($clean($row[0]), 0, 6))->startOfMonth()->format('Y-m-d');
-                $pSalario  = Carbon::createFromFormat('Ym', substr($clean($row[1]), 0, 6))->startOfMonth()->format('Y-m-d');
-                
-                // fecha_pago viene como d/m/Y (1/2/2026)
-                $fPago = Carbon::parse(str_replace('/', '-', $clean($row[2])))->format('Y-m-d');
+                // 1. Manejo robusto de fechas (Detecta si es Serial de Excel o String YYYYMM)
+                $parseDate = function($val, $isPeriod = true) use ($clean) {
+                    $v = $clean($val);
+                    if (is_numeric($v) && strlen($v) < 7) {
+                        // Es un serial de Excel (ej: 46082)
+                        return Carbon::instance(\PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($v));
+                    }
+                    
+                    if ($isPeriod) {
+                        return Carbon::createFromFormat('Ym', substr($v, 0, 6))->startOfMonth();
+                    }
+                    
+                    return Carbon::parse(str_replace('/', '-', $v));
+                };
 
-                // 4. Helper Numérico (Convierte 1,02 a 1.02)
+                $pVariable = $parseDate($row[0])->format('Y-m-d');
+                $pSalario  = $parseDate($row[1])->format('Y-m-d');
+                $fPago     = $parseDate($row[2], false)->format('Y-m-d');
+
+                // 2. Helper Numérico (Maneja separadores de miles "3,527.54")
                 $num = function($v) use ($clean) {
-                    $val = str_replace(',', '.', $clean($v));
+                    $v = $clean($v);
+                    if ($v === '-' || $v === '') return 0;
+                    // Eliminamos la coma (miles) para que PHP reconozca el punto (decimal)
+                    $val = str_replace(',', '', $v);
                     return is_numeric($val) ? (float)$val : 0;
                 };
 
@@ -68,7 +77,7 @@ class BaseLlegadaSeeder extends Seeder
                         'dias_terr'        => $num($row[9]),
                         'dev_casa'         => $num($row[10]),
                         'dias_casa'        => $num($row[11]),
-                        'anillo'           => $clean($row[12]) === '0' ? null : $clean($row[12]),
+                        'anillo'           => $clean($row[12]) === '-' ? null : $clean($row[12]),
                         'comentario'       => $clean($row[13]) ?: null,
                     ]
                 );
@@ -81,6 +90,6 @@ class BaseLlegadaSeeder extends Seeder
         }
 
         fclose($file);
-        $this->command->info("Carga exitosa: $procesados registros. (Omitidos por legajo inexistente: $omitidos)");
+        $this->command->info("Carga exitosa: $procesados registros.");
     }
 }

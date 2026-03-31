@@ -17,10 +17,10 @@ class WorkCalendarSeeder extends Seeder
         }
 
         $file = fopen($csvFile, 'r');
-        fgetcsv($file, 0, ';'); // Saltar cabecera
+        fgetcsv($file, 0, ','); // Saltar cabecera
 
         $count = 0;
-        while (($row = fgetcsv($file, 0, ';')) !== FALSE) {
+        while (($row = fgetcsv($file, 0, ',')) !== FALSE) {
             try {
                 // Limpiamos la cadena de la fecha
                 $fechaRaw = trim($row[0]);
