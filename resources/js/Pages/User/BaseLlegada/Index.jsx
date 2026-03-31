@@ -83,11 +83,16 @@ function RegistroCard({ r, n }) {
     return date.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
 
-  // Rutas del calendario
-  const rawDate = String(r.periodo_salario || "").split("T")[0].split("-");
-  const urlYear = parseInt(rawDate[0], 10) || new Date().getFullYear();
-  const urlMonth = parseInt(rawDate[1], 10) || new Date().getMonth() + 1;
+// Lógica para abrir el calendario un mes antes del periodo de salario
+const rawDate = String(r.periodo_salario || "").split("T")[0].split("-");
+let urlYear = parseInt(rawDate[0], 10) || new Date().getFullYear();
+let urlMonth = (parseInt(rawDate[1], 10) || (new Date().getMonth() + 1)) - 1;
 
+// Si el mes es Enero (1), al restar queda 0, debemos pasar a Diciembre (12) del año anterior
+if (urlMonth === 0) {
+  urlMonth = 12;
+  urlYear--;
+}
   return (
     <div className={`relative bg-primary-secondary rounded-2xl border border-text-secondary/10 shadow-float dark:shadow-dark-float overflow-hidden transition-transform-shadow hover-lift`}>
       
@@ -98,7 +103,7 @@ function RegistroCard({ r, n }) {
         
         {/* HEADER: Fechas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <DateBadge label="Periodo Variable" value={formatMonth(r.periodo_variable)} />
+          <DateBadge label="Periodo Variable - Devoluciones" value={formatMonth(r.periodo_variable)} />
           <DateBadge label="Salario Aplicado" value={formatMonth(r.periodo_salario)} isHighlight />
           <DateBadge label="Fecha de Pago" value={formatExactDate(r.fecha_pago)} />
         </div>
@@ -151,8 +156,8 @@ function RegistroCard({ r, n }) {
             </div>
 
             <div className="space-y-3 mb-5">
-              <DataRow label="Alimentación" value={`$${n(r.devol_alimen)}`} />
-              <DataRow label="Territorio" value={`$${n(r.dev_territorio)}`} />
+              <DataRow label="Alimentación(Lun-Vie)" value={`$${n(r.devol_alimen)}`} />
+              <DataRow label="Territorio(Lun-Sab)" value={`$${n(r.dev_territorio)}`} />
               <DataRow label="Casa" value={`$${n(r.dev_casa)}`} />
             </div>
 
@@ -187,11 +192,11 @@ function RegistroCard({ r, n }) {
 }
 
 const DateBadge = ({ label, value, isHighlight }) => (
-  <div className={`p-4 rounded-xl flex flex-col justify-center ${isHighlight ? 'bg-accent/10 border border-accent/20' : 'bg-primary border border-text-secondary/10'}`}>
-    <span className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isHighlight ? 'text-abinbev-gold' : 'text-text-secondary'}`}>
+  <div className={`p-5 rounded-2xl flex flex-col justify-center items-center text-center transition-all ${isHighlight ? 'bg-accent/10 border-2 border-accent/30 shadow-glow' : 'bg-primary border border-text-secondary/10'}`}>
+    <span className={`text-[11px] font-black uppercase tracking-[0.15em] mb-2 ${isHighlight ? 'text-abinbev-gold' : 'text-text-secondary'}`}>
       {label}
     </span>
-    <span className="text-base font-bold text-text-primary capitalize">
+    <span className="text-xl md:text-2xl font-black text-text-primary capitalize leading-none">
       {value}
     </span>
   </div>
