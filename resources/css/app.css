@@ -2,154 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
 @layer base {
-
-
-    @font-face {
-        font-family: 'Century Gothic Pro';
-        src: url('/fonts/fonnts.com-Century_Gothic_Pro.otf') format('opentype');
-        font-weight: 400;
-        font-style: normal;
-    }
-
-    @font-face {
-        font-family: 'Century Gothic Pro';
-        src: url('/fonts/fonnts.com-Century_Gothic_Pro_Bold.otf') format('opentype');
-        font-weight: 700;
-        font-style: normal;
-    }
-
-    @font-face {
-        font-family: 'Century Gothic Pro';
-        src: url('/fonts/fonnts.com-Century_Gothic_Pro_Italic.otf') format('opentype');
-        font-weight: 400;
-        font-style: italic;
-    }
-
-    @font-face {
-        font-family: 'Century Gothic Pro';
-        src: url('/fonts/fonnts.com-Century_Gothic_Pro_Bold_Italic.otf') format('opentype');
-        font-weight: 700;
-        font-style: italic;
-    }
+    @font-face { font-family: 'Century Gothic Pro'; src: url('/fonts/fonnts.com-Century_Gothic_Pro.otf') format('opentype'); font-weight: 400; font-style: normal; }
+    @font-face { font-family: 'Century Gothic Pro'; src: url('/fonts/fonnts.com-Century_Gothic_Pro_Bold.otf') format('opentype'); font-weight: 700; font-style: normal; }
+    @font-face { font-family: 'Century Gothic Pro'; src: url('/fonts/fonnts.com-Century_Gothic_Pro_Italic.otf') format('opentype'); font-weight: 400; font-style: italic; }
+    @font-face { font-family: 'Century Gothic Pro'; src: url('/fonts/fonnts.com-Century_Gothic_Pro_Bold_Italic.otf') format('opentype'); font-weight: 700; font-style: italic; }
     
     :root {
-        /* Tema CLARO (valores en RGB para usar con alpha) */
         --color-bg-primary: 255 255 255;
         --color-bg-secondary: 248 249 250;
         --color-text-primary: 0 0 0;
         --color-text-secondary: 75 85 99;
-        --color-accent: 245 224 3; /* Amarillo AB InBev */
+        --color-accent: 245 224 3;
     }
     
     .dark {
-        /* Tema OSCURO (por defecto) - Estilo Apple */
-        --color-bg-primary: 0 0 0; /* Negro AB InBev */
+        --color-bg-primary: 0 0 0;
         --color-bg-secondary: 17 17 17;
         --color-text-primary: 255 255 255;
-        --color-text-secondary: 199 199 199; /* Gris claro AB InBev */
-        --color-accent: 245 224 3; /* Amarillo AB InBev */
+        --color-text-secondary: 199 199 199;
+        --color-accent: 245 224 3;
     }
 
-    /* Asegurar que el tema oscuro se aplique correctamente */
-    html.dark {
-        color-scheme: dark;
-    }
-    
-    html:not(.dark) {
-        color-scheme: light;
-    }
+    html.dark { color-scheme: dark; }
+    html:not(.dark) { color-scheme: light; }
 
     body {
         font-family: 'Century Gothic Pro', ui-sans-serif, system-ui, sans-serif;
         background-color: rgb(var(--color-bg-primary));
         color: rgb(var(--color-text-primary));
-        transition: background-color 0.2s ease, color 0.2s ease;
-    }
-
-    h1, h2, h3, h4, h5, h6 {
-        font-family: 'Century Gothic Pro', ui-sans-serif, system-ui, sans-serif;
+        transition: background-color 0.3s ease, color 0.3s ease;
     }
 }
 
 @layer components {
-    /* Microinteracciones estilo Apple - CORREGIDAS */
-    .hover-lift {
-        transition: all 0.2s ease-in-out;
+    /* Contenedor principal del borde dinámico */
+    .glow-card-wrapper {
+        position: relative;
+        padding: 1.5px; /* Grosor del borde brillante */
+        border-radius: 1.25rem;
+        background: var(--card-gradient, #333);
+        z-index: 1;
+        width: 100%;
+        transition: transform 0.2s ease;
     }
-    
-    .hover-lift:hover {
-        transform: scale(1.02);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+
+    /* El efecto de sombra/desenfoque externo */
+    .glow-card-wrapper::after {
+        content: "";
+        position: absolute;
+        top: -5px;
+        left: 0;
+        right: 0;
+        height: 100%;
+        width: 100%;
+        z-index: -1;
+        transform: scale(0.96);
+        filter: blur(25px);
+        background: var(--card-gradient, #333);
+        opacity: 0.35;
+        transition: opacity 0.5s ease, top 0.5s ease;
     }
-    
-    .hover-glow {
-        transition: box-shadow 0.3s ease-in-out;
+
+    .glow-card-wrapper:hover::after {
+        opacity: 0.65;
+        top: 5px;
     }
-    
-    .hover-glow:hover {
-        box-shadow: 0 0 20px rgba(245, 224, 3, 0.15);
-    }
-    
-    .btn-hover {
-        transition: all 0.2s ease-in-out;
-    }
-    
-    .btn-hover:hover {
-        transform: scale(1.02);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
-    
-    .btn-hover:active {
+
+    .glow-card-wrapper:active {
         transform: scale(0.98);
+    }
+
+    /* El contenedor interno sólido */
+    .glow-card-content {
+        background-color: rgb(var(--color-bg-primary));
+        border-radius: 1.15rem; /* Ligeramente menor que el wrapper para encajar */
+        height: 100%;
+        width: 100%;
+        position: relative;
+        z-index: 2;
+        overflow: hidden;
+    }
+
+    /* Sub-paneles internos */
+    .panel-data {
+        background-color: rgba(0, 0, 0, 0.03);
+        border-radius: 0.75rem;
+        padding: 1rem;
+    }
+
+    .dark .panel-data {
+        background-color: rgba(255, 255, 255, 0.04);
     }
 }
 
 @layer utilities {
-    /* Animaciones personalizadas */
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-    
-    @keyframes slideUp {
-        from { 
-            transform: translateY(10px); 
-            opacity: 0; 
-        }
-        to { 
-            transform: translateY(0); 
-            opacity: 1; 
-        }
-    }
-    
-    @keyframes scaleIn {
-        from { 
-            transform: scale(0.95); 
-            opacity: 0; 
-        }
-        to { 
-            transform: scale(1); 
-            opacity: 1; 
-        }
-    }
-    
-    .animate-fade-in {
-        animation: fadeIn 0.3s ease-in-out;
-    }
-    
-    .animate-slide-up {
-        animation: slideUp 0.2s ease-out;
-    }
-    
-    .animate-scale-in {
-        animation: scaleIn 0.15s ease-out;
-    }
-    
-    /* Transiciones personalizadas */
-    .transition-transform-shadow {
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    .text-balance {
+        text-wrap: balance;
     }
 }

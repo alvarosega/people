@@ -11,7 +11,7 @@ use App\Http\Controllers\Admin\BaseLlegadaController;
 use App\Http\Controllers\Admin\VacationController;
 use App\Http\Controllers\User\UserController;
 use App\Http\Controllers\Auth\VerifyResetCodeController;
-use App\Http\Controllers\ProfileController; 
+use App\Http\Controllers\User\ProfileController as UserProfileController;
 use App\Http\Controllers\Admin\WorkCalendarController;
 use Inertia\Inertia;
 use App\Http\Controllers\User\WorkCalendarController as UserWorkCalendarController;
@@ -30,13 +30,13 @@ Route::get('/reset-password-code/{email}/{token}', [VerifyResetCodeController::c
     ->name('password.reset.code');
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    // 👉 ADMIN
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/', [AdminIndexController::class, 'index'])->name('admin');
-       
+        Route::prefix('profile')->name('admin.profile.')->group(function () {
+            Route::get('/', [ProfileController::class, 'edit'])->name('edit');
+            Route::patch('/', [ProfileController::class, 'update'])->name('update');
+            Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
+        });
         // Base de llegada
         Route::prefix('base-llegada')->name('admin.base-llegada.')->group(function () {
             // CRUD Básico
@@ -149,7 +149,12 @@ Route::middleware(['auth'])->group(function () {
         
         // Esta es la ruta a la que redirige AuthenticatedSessionController
         Route::get('/', [UserController::class, 'index'])->name('index');
-
+        Route::prefix('profile')->name('profile.')->group(function () {
+            // Usamos el nuevo controlador exclusivo para usuarios
+            Route::get('/', [\App\Http\Controllers\User\ProfileController::class, 'edit'])->name('edit');
+            
+            // No añadimos PATCH ni DELETE porque el usuario no tiene permisos de edición
+        });
         // Mantenemos esta por compatibilidad con el Layout, pero apunta al mismo controlador
         Route::get('/base-llegada', [UserController::class, 'index'])->name('base_llegada');
         

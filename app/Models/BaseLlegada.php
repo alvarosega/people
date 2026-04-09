@@ -10,10 +10,20 @@ class BaseLlegada extends Model
     protected $table = 'base_llegada';
 
     protected $fillable = [
-        'periodo_variable', 'periodo_salario', 'fecha_pago', 'legajo', 
-        'variable_100', 'pago_porcentaje', 'devol_alimen', 'dias_alim', 
-        'dev_territorio', 'dias_terr', 'dev_casa', 'dias_casa', 
-        'anillo', 'comentario'
+        'periodo_variable', 
+        'periodo_salario', 
+        'fecha_pago', 
+        'legajo', 
+        'territorio', // Agregado
+        'variable_100', 
+        'pago_porcentaje', 
+        'devol_alimen', 
+        'dias_alim', 
+        'dev_territorio', 
+        'dias_terr', 
+        'dev_casa', 
+        'dias_casa', 
+        'comentario'
     ];
 
     protected $casts = [

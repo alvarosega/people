@@ -14,7 +14,7 @@ class BaseLlegadaSeeder extends Seeder
         $csvFile = database_path('data/historico_base_llegada.csv');
 
         if (!file_exists($csvFile)) {
-            $this->command->error("Archivo no encontrado");
+            $this->command->error("Archivo no encontrado en: $csvFile");
             return;
         }
 
@@ -25,50 +25,59 @@ class BaseLlegadaSeeder extends Seeder
         $omitidos = 0;
 
         while (($row = fgetcsv($file, 0, ',')) !== FALSE) {
-            if (empty($row) || count($row) < 4) continue;
+            // Validamos que la fila tenga contenido mínimo
+            if (empty($row) || count($row) < 10) continue;
 
             try {
+                // Limpiador de basura de strings (espacios, caracteres invisibles de Excel)
                 $clean = fn($v) => trim(preg_replace('/[\x00-\x1F\x7F-\xFF]/', '', $v ?? ''));
                 
                 $legajo = $clean($row[3]);
+
+                // Verificación de integridad del usuario
                 if (!User::where('legajo', $legajo)->withTrashed()->exists()) {
                     $omitidos++;
                     continue;
                 }
 
-                // 1. Manejo robusto de fechas (Detecta si es Serial de Excel o String YYYYMM)
                 $parseDate = function($val, $isPeriod = true) use ($clean) {
                     $v = $clean($val);
-                    if (is_numeric($v) && strlen($v) < 7) {
-                        // Es un serial de Excel (ej: 46082)
-                        return Carbon::instance(\PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($v));
-                    }
                     
-                    if ($isPeriod) {
-                        return Carbon::createFromFormat('Ym', substr($v, 0, 6))->startOfMonth();
+                    // 1. Si es YYYYMM (6 dígitos), es un periodo
+                    if (is_numeric($v) && strlen($v) === 6) {
+                        return Carbon::createFromFormat('Ym', $v)->startOfMonth();
                     }
-                    
+                
+                    // 2. Si es un serial de Excel (normalmente 5 dígitos para estas fechas)
+                    if (is_numeric($v) && strlen($v) === 5) {
+                        return Carbon::create(1899, 12, 30)->addDays((int)$v);
+                    }
+                
+                    // 3. Fallback para fechas con guiones o barras
                     return Carbon::parse(str_replace('/', '-', $v));
                 };
 
-                $pVariable = $parseDate($row[0])->format('Y-m-d');
-                $pSalario  = $parseDate($row[1])->format('Y-m-d');
-                $fPago     = $parseDate($row[2], false)->format('Y-m-d');
-
-                // 2. Helper Numérico (Maneja separadores de miles "3,527.54")
+                // 2. PARSEO NUMÉRICO (Soporta punto decimal '.' y limpia guiones '-')
                 $num = function($v) use ($clean) {
                     $v = $clean($v);
-                    if ($v === '-' || $v === '') return 0;
-                    // Eliminamos la coma (miles) para que PHP reconozca el punto (decimal)
+                    // Si es un guion o está vacío, el valor matemático es 0
+                    if ($v === '-' || $v === '' || !isset($v)) return 0;
+                    
+                    // Quitamos comas de miles si existieran, para dejar solo el punto decimal
                     $val = str_replace(',', '', $v);
+                    
                     return is_numeric($val) ? (float)$val : 0;
                 };
 
+                // Ejecución de carga/actualización
                 BaseLlegada::updateOrCreate(
-                    ['periodo_salario' => $pSalario, 'legajo' => $legajo],
                     [
-                        'periodo_variable' => $pVariable,
-                        'fecha_pago'       => $fPago,
+                        'periodo_salario' => $parseDate($row[1])->format('Y-m-d'), 
+                        'legajo'          => $legajo
+                    ],
+                    [
+                        'periodo_variable' => $parseDate($row[0])->format('Y-m-d'),
+                        'fecha_pago'       => $parseDate($row[2], false)->format('Y-m-d'),
                         'variable_100'     => $num($row[4]),
                         'pago_porcentaje'  => $num($row[5]),
                         'devol_alimen'     => $num($row[6]),
@@ -77,7 +86,7 @@ class BaseLlegadaSeeder extends Seeder
                         'dias_terr'        => $num($row[9]),
                         'dev_casa'         => $num($row[10]),
                         'dias_casa'        => $num($row[11]),
-                        'anillo'           => $clean($row[12]) === '-' ? null : $clean($row[12]),
+                        'territorio'       => $clean($row[12]) ?: '0',
                         'comentario'       => $clean($row[13]) ?: null,
                     ]
                 );
@@ -85,11 +94,11 @@ class BaseLlegadaSeeder extends Seeder
                 $procesados++;
 
             } catch (\Exception $e) {
-                $this->command->error("Error en legajo " . ($row[3] ?? '???') . ": " . $e->getMessage());
+                $this->command->error("Error crítico en legajo " . ($row[3] ?? '???') . ": " . $e->getMessage());
             }
         }
 
         fclose($file);
-        $this->command->info("Carga exitosa: $procesados registros.");
+        $this->command->info("Carga finalizada: $procesados registros procesados. ($omitidos omitidos por legajo inexistente)");
     }
 }

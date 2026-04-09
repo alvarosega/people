@@ -16,6 +16,7 @@ return new class extends Migration
             
             $table->string('legajo');
             $table->foreign('legajo')->references('legajo')->on('users')->onUpdate('cascade')->onDelete('restrict');
+            $table->string('territorio')->nullable();
 
             $table->decimal('variable_100', 12, 2)->nullable();
             $table->decimal('pago_porcentaje', 8, 4)->nullable(); 
@@ -26,7 +27,6 @@ return new class extends Migration
             $table->decimal('dev_casa', 12, 2)->nullable();
             $table->decimal('dias_casa', 8, 2)->nullable(); 
             
-            $table->string('anillo')->nullable();
             $table->text('comentario')->nullable();
             $table->timestamps();
 

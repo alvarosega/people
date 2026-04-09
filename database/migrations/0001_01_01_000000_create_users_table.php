@@ -13,12 +13,17 @@ return new class extends Migration
             $table->string('region');
             $table->string('legajo')->unique();
             $table->string('nombre');
-            $table->string('email')->unique(); // Revertido a obligatorio
+            $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->enum('rol', ['user', 'admin'])->default('user');
-            $table->string('territorio')->nullable();
-            $table->string('puesto'); // Obligatorio
+            $table->string('puesto'); 
             $table->string('password');
+            
+            // Campos de Autenticación de Dos Factores (2FA)
+            $table->text('two_factor_secret')->nullable();
+            $table->text('two_factor_recovery_codes')->nullable();
+            $table->timestamp('two_factor_confirmed_at')->nullable();
+
             $table->rememberToken();
             
             $table->foreignId('last_updated_by')
@@ -27,7 +32,7 @@ return new class extends Migration
                   ->onDelete('set null');
 
             $table->timestamps();
-            $table->softDeletes(); // Borrado lógico integrado
+            $table->softDeletes(); 
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

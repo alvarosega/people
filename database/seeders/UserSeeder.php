@@ -25,28 +25,28 @@ class UserSeeder extends Seeder
 
         while (($data = fgetcsv($file, 0, ',')) !== FALSE) {
             try {
-                // Limpiamos espacios en blanco de los datos
-                $data = array_map('trim', $data);
+                // Limpiamos espacios y caracteres extraños
+                $data = array_map(fn($v) => trim(preg_replace('/[\x00-\x1F\x7F-\xFF]/', '', $v ?? '')), $data);
 
-                // Validación preventiva: Si el email es obligatorio en DB, no podemos enviar NULL
+                // Validación: El email es obligatorio
                 if (empty($data[3])) {
-                    throw new \Exception("El email es obligatorio y está vacío en el CSV.");
+                    throw new \Exception("El email está vacío.");
                 }
 
+                // Mapeo corregido basado en tu CSV (0 a 6)
                 User::create([
-                    'region'     => $data[0],
-                    'legajo'     => $data[1],
-                    'nombre'     => $data[2],
-                    'email'      => $data[3], // Eliminado el ternario de null
-                    'rol'        => $data[4],
-                    'territorio' => $data[5] ?: null, // Territorio sí puede ser null según migración
-                    'puesto'     => $data[6],
-                    'password'   => Hash::make($data[7]),
+                    'region'   => $data[0], // region
+                    'legajo'   => $data[1], // legajo
+                    'nombre'   => $data[2], // nombre
+                    'email'    => $data[3], // email
+                    'rol'      => $data[4], // rol
+                    'puesto'   => $data[5], // puesto
+                    'password' => Hash::make($data[6]), // password (índice final)
                 ]);
 
             } catch (\Exception $e) {
                 $errores++;
-                $this->command->error("Error en la fila $row (Legajo: " . ($data[1] ?? 'N/A') . "): " . $e->getMessage());
+                $this->command->error("Error en fila $row (Legajo: " . ($data[1] ?? 'N/A') . "): " . $e->getMessage());
             }
             $row++;
         }
@@ -56,7 +56,7 @@ class UserSeeder extends Seeder
         if ($errores > 0) {
             $this->command->warn("Seeder finalizado con $errores errores.");
         } else {
-            $this->command->info("Seeder ejecutado correctamente sin errores.");
+            $this->command->info("Seeder ejecutado correctamente.");
         }
     }
 }

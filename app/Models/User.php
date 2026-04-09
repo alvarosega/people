@@ -18,7 +18,6 @@ class User extends Authenticatable
         'nombre',
         'email',
         'rol',
-        'territorio',
         'puesto',
         'password',
         'last_updated_by',
