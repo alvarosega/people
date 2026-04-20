@@ -6,7 +6,8 @@ import logoDark from '@/Components/Logo/logo-dark.png';
 import ThemeToggle from '@/Components/ThemeToggle';
 import { 
     Home, Users, Wallet, CalendarDays, Calendar, 
-    Building2, Info, User as UserIcon, LogOut, Menu, ChevronDown 
+    Building2, Info, User as UserIcon, LogOut, Menu, ChevronDown,
+    Calculator, FileText 
 } from 'lucide-react';
 
 export default function AuthenticatedLayout({ header, children }) {
@@ -81,7 +82,8 @@ export default function AuthenticatedLayout({ header, children }) {
                                 <>
                                     <NavLink href={route('user.base_llegada')}>Mis Pagos</NavLink>
                                     <NavLink href={route('user.calendar')}>Calendario</NavLink>
-                                    <NavLink href={route('user.information.index')}>Información</NavLink>
+                                    <NavLink href={route('user.seniority_bonus')}>Bono Antigüedad</NavLink>
+                                    <NavLink href={route('user.quinquenio_request')}>Solicitud Quinquenio</NavLink>
                                 </>
                             )}
                         </div>
@@ -235,7 +237,8 @@ function BottomSheet({ isOpen, onClose, user }) {
                             <>
                                 <MobileLink href={route('user.base_llegada')} icon={<Wallet size={20} />}>Mis Pagos</MobileLink>
                                 <MobileLink href={route('user.calendar')} icon={<CalendarDays size={20} />}>Calendario</MobileLink>
-                                <MobileLink href={route('user.information.index')} icon={<Info size={20} />}>Información</MobileLink>
+                                <MobileLink href={route('user.seniority_bonus')} icon={<Calculator size={20} />}>Bono Antigüedad</MobileLink>
+                                <MobileLink href={route('user.quinquenio_request')} icon={<FileText size={20} />}>Solicitud Quinquenio</MobileLink>
                             </>
                         )}
                     </nav>

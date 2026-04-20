@@ -67,4 +67,17 @@ class User extends Authenticatable
     {
         return $this->legajo;
     }
+    // Dentro de la clase User
+    public function pagos()
+    {
+        return $this->hasMany(BaseLlegada::class, 'legajo', 'legajo');
+    }
+
+    /**
+     * Obtiene el último registro de pago de forma eficiente.
+     */
+    public function ultimoPago()
+    {
+        return $this->hasOne(BaseLlegada::class, 'legajo', 'legajo')->latestOfMany('fecha_pago');
+    }
 }

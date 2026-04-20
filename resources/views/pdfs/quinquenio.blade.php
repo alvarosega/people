@@ -37,7 +37,8 @@
     </p>
 
     <div class="mb-4">
-        <p>Señora: Andrea Ponce Lemaitre<br>
+        <p>Señora:<br>
+        Andrea Ponce Lemaitre<br>
         <strong>Jefe de RRHH</strong><br>
         Presente.-</p>
     </div>
@@ -51,7 +52,7 @@
     </p>
 
     <p class="text-justify mb-4">
-        Por medio de la presente yo, <strong>{{ $nombre }}</strong> con C.I. <strong>{{ $ci }}</strong>, me dirijo a su persona con el debido respeto para solicitar el pago correspondiente a mi <strong>{{ strtolower($quinquenio) }} quinquenio</strong>, en atención al tiempo prestado en la institución.
+        Por medio de la presente yo, <strong>{{ $nombre }}</strong> con C.I. <strong>{{ $ci }}</strong>, me dirijo a su persona con el debido respeto para solicitar el pago correspondiente a mi <strong>{{ $quinquenio }} QUINQUENIO</strong>, en atención al tiempo prestado en la institución.
     </p>
 
     <p class="text-justify mb-2">
@@ -70,7 +71,7 @@
 
     <div class="mt-10 text-center">
         <div class="firma-caja">
-            <strong>FIRMA DEL EMPLEADO</strong><br>
+            <strong>C.I. {{ $ci }}</strong><br>
             {{ $nombre }}<br>
             {{ $cargo }}
         </div>

@@ -38,18 +38,20 @@ export default function Edit({ auth, userData }) {
                                 {userData.puesto}
                             </p>
                         </div>
-
-                        {/* Cuerpo: Datos del Legajo */}
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <ProfileItem label="Nro. de Legajo" value={userData.legajo} />
                                 <ProfileItem label="Región" value={userData.region} />
+                                
+                                {/* NUEVO DATO: Territorio del último pago */}
+                                <ProfileItem label="Territorio (Último Pago)" value={userData.territorio} />
                             </div>
                             
                             <div className="border-t border-text-secondary/10 pt-6">
                                 <ProfileItem label="Correo Electrónico" value={userData.email} />
                             </div>
                         </div>
+                        
                     </div>
                 </div>
             </div>

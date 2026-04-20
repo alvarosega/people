@@ -168,7 +168,8 @@ Route::middleware(['auth'])->group(function () {
         });
 
         Route::get('/events', [EventController::class, 'index'])->name('events');
-        Route::get('/informacion', [InformationController::class, 'index'])->name('information.index');
+        Route::get('/bono-antiguedad', [InformationController::class, 'seniorityBonus'])->name('seniority_bonus');
+        Route::get('/solicitud-quinquenio', [InformationController::class, 'quinquenioRequest'])->name('quinquenio_request');
         Route::get('/informacion/pdf', [InformationController::class, 'generatePdf'])->name('information.pdf');
 
     });
