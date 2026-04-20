@@ -213,9 +213,6 @@ function BottomSheet({ isOpen, onClose, user }) {
                             <div className="text-base font-bold text-text-primary tracking-tight">
                                 {user?.nombre ?? 'Usuario'}
                             </div>
-                            <div className="text-xs font-bold text-text-secondary tracking-widest uppercase mt-0.5">
-                                ID: {user?.legajo ?? user?.email ?? ''}
-                            </div>
                         </div>
                     </div>
 
