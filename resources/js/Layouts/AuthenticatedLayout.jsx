@@ -5,8 +5,8 @@ import logoLight from '@/Components/Logo/logo.png';
 import logoDark from '@/Components/Logo/logo-dark.png';
 import ThemeToggle from '@/Components/ThemeToggle';
 import { 
-    Home, Users, Wallet, CalendarDays, Calendar, 
-    Building2, Info, User as UserIcon, LogOut, Menu, ChevronDown,
+    Home, Users, Wallet, CalendarDays, 
+    User as UserIcon, LogOut, Menu, ChevronDown,
     Calculator, FileText 
 } from 'lucide-react';
 
@@ -72,11 +72,12 @@ export default function AuthenticatedLayout({ header, children }) {
                         <div className="hidden md:flex md:items-center md:space-x-1 flex-1 justify-center">
                             {user.rol === 'admin' ? (
                                 <>
-                                    <NavLink href={route('admin.base-llegada.index')}>Inicio</NavLink>
+                                    <NavLink href={route('admin')}>Inicio</NavLink>
+                                    <NavLink href={route('admin.base-llegada.index')}>Base Llegada</NavLink>
                                     <NavLink href={route('admin.users.index')}>Usuarios</NavLink>
-                                    <NavLink href={route('admin.work-calendar.index')}>Días Laborales</NavLink>
-                                    <NavLink href={route('admin.calendar')}>Eventos</NavLink>
-                                    <NavLink href={route('admin.organigrama.index')}>Organigrama</NavLink>
+                                    <NavLink href={route('admin.work-calendar.index')}>Calendario Usuarios</NavLink>
+                                    <NavLink href={route('admin.seniority_bonus')}>Bono Antigüedad</NavLink>
+                                    <NavLink href={route('admin.quinquenio_request')}>Solicitud Quinquenio</NavLink>
                                 </>
                             ) : (
                                 <>
@@ -118,7 +119,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
             {/* Contenido principal */}
             <main className="flex-1 w-full relative z-10">
-            <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-2 pt-2 pb-8">
+                <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-2 pt-2 pb-8">
                     <div className="animate-fade-in">{children}</div>
                 </div>
             </main>
@@ -138,6 +139,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
 function NavLink({ href, children }) {
     const { url } = usePage();
+    // Normalizamos para detectar activa incluso con query params o subrutas
     const isActive = url === href || url.startsWith(href + '/');
     return (
         <Link
@@ -168,10 +170,10 @@ function UserDropdown({ user }) {
                 </button>
             </Dropdown.Trigger>
             <Dropdown.Content className="mt-2 w-56 bg-primary/90 backdrop-blur-xl rounded-2xl shadow-lg border border-text-secondary/10 p-1.5 overflow-hidden">
-            <Dropdown.Link 
-                href={user.rol === 'admin' ? route('admin.profile.edit') : route('user.profile.edit')} 
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold hover:bg-text-secondary/10 text-text-primary transition-colors"
-            >
+                <Dropdown.Link 
+                    href={user.rol === 'admin' ? route('admin.profile.edit') : route('user.profile.edit')} 
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold hover:bg-text-secondary/10 text-text-primary transition-colors"
+                >
                     <UserIcon size={16} strokeWidth={2.5} className="text-text-secondary" />
                     Mi Perfil
                 </Dropdown.Link>
@@ -190,45 +192,33 @@ function BottomSheet({ isOpen, onClose, user }) {
 
     return (
         <div className="fixed inset-0 z-50 md:hidden flex flex-col justify-end">
-            {/* Backdrop oscuro con Blur (Estilo iOS) */}
-            <div
-                className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
-                onClick={onClose}
-            />
-            {/* Contenedor del Sheet */}
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
             <div
                 className="relative bg-primary/95 backdrop-blur-2xl rounded-t-[32px] shadow-2xl border-t border-text-secondary/10 transform transition-transform duration-300 ease-out flex flex-col max-h-[90vh]"
                 style={{ transform: isOpen ? 'translateY(0)' : 'translateY(100%)' }}
             >
-                {/* Grab Handle */}
                 <div className="w-12 h-1.5 bg-text-secondary/20 rounded-full mx-auto mt-4 mb-2 shrink-0" />
-
                 <div className="p-6 space-y-6 overflow-y-auto overscroll-contain">
-                    {/* User info Card */}
                     <div className="flex items-center gap-4 bg-text-secondary/5 p-4 rounded-2xl border border-text-secondary/10">
                         <span className="flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-tr from-accent to-accent/60 text-primary text-lg font-black shadow-sm">
                             {user?.nombre?.charAt(0).toUpperCase() ?? '?'}
                         </span>
                         <div>
-                            <div className="text-base font-bold text-text-primary tracking-tight">
-                                {user?.nombre ?? 'Usuario'}
-                            </div>
+                            <div className="text-base font-bold text-text-primary tracking-tight">{user?.nombre ?? 'Usuario'}</div>
+                            <div className="text-xs text-text-secondary uppercase tracking-widest font-black">{user?.rol}</div>
                         </div>
                     </div>
 
-                    {/* Navigation */}
                     <nav className="space-y-1">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-text-secondary/60 px-2 mb-2">
-                            Menú Principal
-                        </div>
+                        <div className="text-[10px] font-black uppercase tracking-widest text-text-secondary/60 px-2 mb-2">Menú Principal</div>
                         {user.rol === 'admin' ? (
                             <>
-                                <MobileLink href="/admin" icon={<Home size={20} />}>Inicio</MobileLink>
-                                <MobileLink href="/admin/users" icon={<Users size={20} />}>Usuarios</MobileLink>
-                                <MobileLink href="/admin/base-llegada" icon={<Wallet size={20} />}>Base Llegada</MobileLink>
-                                <MobileLink href={route('admin.work-calendar.index')} icon={<CalendarDays size={20} />}>Días Laborales</MobileLink>
-                                <MobileLink href="/admin/calendar" icon={<Calendar size={20} />}>Eventos</MobileLink>
-                                <MobileLink href="/admin/organigrama" icon={<Building2 size={20} />}>Organigrama</MobileLink>
+                                <MobileLink href={route('admin')} icon={<Home size={20} />}>Inicio</MobileLink>
+                                <MobileLink href={route('admin.base-llegada.index')} icon={<Wallet size={20} />}>Base Llegada</MobileLink>
+                                <MobileLink href={route('admin.users.index')} icon={<Users size={20} />}>Usuarios</MobileLink>
+                                <MobileLink href={route('admin.work-calendar.index')} icon={<CalendarDays size={20} />}>Calendario Usuarios</MobileLink>
+                                <MobileLink href={route('admin.seniority_bonus')} icon={<Calculator size={20} />}>Bono Antigüedad</MobileLink>
+                                <MobileLink href={route('admin.quinquenio_request')} icon={<FileText size={20} />}>Solicitud Quinquenio</MobileLink>
                             </>
                         ) : (
                             <>
@@ -240,18 +230,14 @@ function BottomSheet({ isOpen, onClose, user }) {
                         )}
                     </nav>
 
-                    {/* Acciones Rápidas */}
                     <div className="pt-2">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-text-secondary/60 px-2 mb-2">
-                            Cuenta
-                        </div>
+                        <div className="text-[10px] font-black uppercase tracking-widest text-text-secondary/60 px-2 mb-2">Cuenta</div>
                         <MobileLink 
                             href={user.rol === 'admin' ? route('admin.profile.edit') : route('user.profile.edit')} 
                             icon={<UserIcon size={20} />}
                         >
                             Mi Perfil
                         </MobileLink>
-                        
                         <div className="mt-2">
                             <Link
                                 href="/logout"

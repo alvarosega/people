@@ -14,8 +14,15 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::query();
-        
+        // 1. Inyectar Subquery para el último territorio
+        $query = User::query()->addSelect([
+            'ultimo_territorio' => \App\Models\BaseLlegada::select('territorio')
+                ->whereColumn('legajo', 'users.legajo')
+                ->orderByDesc('fecha_pago')
+                ->orderByDesc('id')
+                ->limit(1)
+        ]);
+    
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -23,8 +30,7 @@ class UserController extends Controller
                   ->orWhere('legajo', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('region', 'like', "%{$search}%")
-                  ->orWhere('rol', 'like', "%{$search}%")
-                  ->orWhere('territorio', 'like', "%{$search}%")
+                  // IMPORTANTE: Se elimina la búsqueda directa en 'territorio' para evitar error de columna inexistente
                   ->orWhere('puesto', 'like', "%{$search}%");
             });
         }
@@ -127,37 +133,34 @@ class UserController extends Controller
 
     public function export()
     {
-        $users = User::all();
         $csvFileName = 'usuarios_' . date('Y-m-d') . '.csv';
-        
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
+            'Content-Disposition' => "attachment; filename=\"$csvFileName\"",
         ];
-
-        $callback = function() use ($users) {
+    
+        $callback = function() {
             $file = fopen('php://output', 'w');
-            
-            // BOM para que Excel reconozca UTF-8 automáticamente
             fputs($file, "\xEF\xBB\xBF");
-            
-            fputcsv($file, ['Region', 'Legajo', 'Nombre', 'Email', 'Rol', 'Territorio', 'Puesto']);
-            
+            fputcsv($file, ['Region', 'Legajo', 'Nombre', 'Email', 'Rol', 'Último Territorio', 'Puesto']);
+    
+            // Usamos cursor para no saturar la RAM
+            $users = User::query()->addSelect([
+                'ultimo_territorio' => \App\Models\BaseLlegada::select('territorio')
+                    ->whereColumn('legajo', 'users.legajo')
+                    ->orderByDesc('fecha_pago')
+                    ->limit(1)
+            ])->cursor();
+    
             foreach ($users as $user) {
                 fputcsv($file, [
-                    $user->region,
-                    $user->legajo,
-                    $user->nombre,
-                    $user->email, 
-                    $user->rol,
-                    $user->territorio,
-                    $user->puesto
+                    $user->region, $user->legajo, $user->nombre, $user->email, 
+                    $user->rol, $user->ultimo_territorio ?? 'N/A', $user->puesto
                 ]);
             }
-            
             fclose($file);
         };
-
+    
         return response()->stream($callback, 200, $headers);
     }
 }

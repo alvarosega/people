@@ -14,7 +14,7 @@ class BaseLlegada extends Model
         'periodo_salario', 
         'fecha_pago', 
         'legajo', 
-        'territorio', // Agregado
+        'territorio',
         'variable_100', 
         'pago_porcentaje', 
         'devol_alimen', 
