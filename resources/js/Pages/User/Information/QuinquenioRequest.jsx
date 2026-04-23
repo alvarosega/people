@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, ChevronDown} from 'lucide-react';
 
 export default function QuinquenioRequest({ auth, user_data }) {
     const [data, setData] = useState({
@@ -71,12 +71,34 @@ export default function QuinquenioRequest({ auth, user_data }) {
                                     <input type="date" name="fecha" value={data.fecha} onChange={handleChange} className="w-full bg-text-secondary/5 border border-text-secondary/10 rounded-2xl px-5 py-4 text-sm text-text-primary focus:border-accent" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest px-1">Periodo</label>
-                                    <select name="quinquenio" value={data.quinquenio} onChange={handleChange} className="w-full bg-text-secondary/5 border border-text-secondary/10 rounded-2xl px-5 py-4 text-sm text-text-primary focus:border-accent appearance-none">
-                                        <option value="Primer">Primer Quinquenio</option>
-                                        <option value="Segundo">Segundo Quinquenio</option>
-                                        <option value="Tercer">Tercer Quinquenio</option>
-                                    </select>
+                                    <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest px-2 opacity-70">
+                                        Periodo de Quinquenio
+                                    </label>
+                                    
+                                    <div className="relative group">
+                                        <select 
+                                            name="quinquenio" 
+                                            value={data.quinquenio} 
+                                            onChange={handleChange} 
+                                            className="w-full bg-text-secondary/5 border border-text-secondary/10 rounded-2xl px-5 py-4 text-sm text-text-primary focus:border-accent focus:ring-4 focus:ring-accent/5 transition-all duration-300 appearance-none cursor-pointer hover:bg-text-secondary/[0.08]"
+                                        >
+                                            <option value="Primer" className="bg-primary text-text-primary">Primer Quinquenio</option>
+                                            <option value="Segundo" className="bg-primary text-text-primary">Segundo Quinquenio</option>
+                                            <option value="Tercer" className="bg-primary text-text-primary">Tercer Quinquenio</option>
+                                            <option value="Cuarto" className="bg-primary text-text-primary">Cuarto Quinquenio</option>
+                                            <option value="Quinto" className="bg-primary text-text-primary">Quinto Quinquenio</option>
+                                            <option value="Sexto" className="bg-primary text-text-primary">Sexto Quinquenio</option>
+                                            <option value="Septimo" className="bg-primary text-text-primary">Septimo Quinquenio</option>
+                                        </select>
+
+                                        {/* Flecha personalizada para romper la cuadratura nativa */}
+                                        <div className="absolute inset-y-0 right-0 flex items-center pr-5 pointer-events-none text-text-secondary group-focus-within:text-accent transition-colors">
+                                            <ChevronDown size={18} strokeWidth={2.5} />
+                                        </div>
+                                        
+                                        {/* Efecto de brillo sutil en el borde superior para dar volumen */}
+                                        <div className="absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
+                                    </div>
                                 </div>
                             </div>
 
