@@ -40,6 +40,13 @@ export default function SeniorityBonus({ auth }) {
                         </div>
 
                         <div className="bg-text-secondary/5 rounded-[22px] border border-text-secondary/10 p-6 relative overflow-hidden">
+                        <div className="absolute top-0 right-0">
+                            <div className="bg-accent/10 border-b border-l border-accent/20 px-3 py-1 rounded-bl-xl">
+                                <span className="text-[9px] font-black text-accent uppercase tracking-[0.2em]">
+                                    Ejemplo
+                                </span>
+                            </div>
+                        </div>
                             <div className="grid grid-cols-2 gap-y-4 relative">
                                 <div className="flex flex-col justify-center">
                                     <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1">Base Imponible</span>
